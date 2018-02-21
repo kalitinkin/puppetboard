@@ -82,13 +82,13 @@ def pretty_print(var, brackets=False):
     if type(var) == tuple or type(var) == list:
         res = ", ".join(map(lambda v: pretty_print(v, True), var))
         if brackets:
-            return "[%s]".format(res)
+            return "[{0}]".format(res)
         else:
             return res
     if type(var) == dict:
-        res = ", ".join(map(lambda v: "%s: %s".format(v, pretty_print(var[v], True)), var.keys()))
+        res = ", ".join(map(lambda v: "{0}: {1}".format(v, pretty_print(var[v], True)), var.keys()))
         if brackets:
-            return "{%s}".format(res)
+            return "\{{0}\}".format(res)
         else:
             return res
     if type(var) == bool:
@@ -353,11 +353,15 @@ def inventory_ajax(env):
         if fact.node not in fact_data:
             fact_data[fact.node] = {}
         for name in fact_names:
-            if fact.name == name or name.find(fact.name + "::") == 0:
+            if fact.name == name or name.find("{}::".format(fact.name)) == 0:
                 value = fact.value
                 hierarchy = name.split("::")
                 for index in range(1, len(hierarchy)):
-                    value = value[hierarchy[index]]
+                    try:
+                        value = value[hierarchy[index]]
+                    except:
+                        value = ""
+                        break
                 fact_data[fact.node][name] = pretty_print(value)
 
     total = len(fact_data)
