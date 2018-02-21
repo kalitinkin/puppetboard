@@ -78,6 +78,30 @@ def check_env(env, envs):
         abort(404)
 
 
+def pretty_print(var, brackets=False):
+    if type(var) == tuple or type(var) == list:
+        res = ", ".join(map(lambda v: pretty_print(v, True), var))
+        if brackets:
+            return "[%s]".format(res)
+        else:
+            return res
+    if type(var) == dict:
+        res = ", ".join(map(lambda v: "%s: %s".format(v, pretty_print(var[v], True)), var.keys()))
+        if brackets:
+            return "{%s}".format(res)
+        else:
+            return res
+    if type(var) == bool:
+        if var:
+            return "Yes"
+        else:
+            return "No"
+    if var:
+        return var
+    else:
+        return ""
+
+
 @app.context_processor
 def utility_processor():
     def now(format='%m/%d/%Y %H:%M:%S'):
@@ -316,7 +340,7 @@ def inventory_ajax(env):
 
     query = AndOperator()
     fact_query = OrOperator()
-    fact_query.add([EqualsOperator("name", name) for name in fact_names])
+    fact_query.add([EqualsOperator("name", (name.split('::'))[0]) for name in fact_names])
     query.add(fact_query)
 
     if env != '*':
@@ -328,7 +352,13 @@ def inventory_ajax(env):
     for fact in facts:
         if fact.node not in fact_data:
             fact_data[fact.node] = {}
-        fact_data[fact.node][fact.name] = fact.value
+        for name in fact_names:
+            if fact.name == name or name.find(fact.name + "::") == 0:
+                value = fact.value
+                hierarchy = name.split("::")
+                for index in range(1, len(hierarchy)):
+                    value = value[hierarchy[index]]
+                fact_data[fact.node][name] = pretty_print(value)
 
     total = len(fact_data)
 
